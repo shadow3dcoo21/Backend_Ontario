@@ -1,0 +1,12 @@
+# Excluir el archivo de entorno
+.env
+# Excluir script de entrada
+setup.sh
+# Excluir Dockerfile y docker-compose
+Dockerfile
+docker-compose.yml
+# Archivos de sistema de Windows
+Thumbs.db
+Desktop.ini
+# Ignorar dependencias de Node.js
+node_modules/
