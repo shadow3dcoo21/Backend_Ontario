@@ -6,30 +6,43 @@ const path = require('path');
 
 // Cargar variables de entorno
 dotenv.config();
-// Configuración de CORS
-const corsOptions = require('./config/cors/cors');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors(corsOptions)); // Habilitar CORS con opciones
-app.options('*', cors(corsOptions)); // Manejar preflight requests
+// Configuración CORS directamente en este archivo (sin importar)
+const whitelist = [
+  'https://sordomundo.pro',
+  'https://www.sordomundo.pro',
+  'https://sordomundo.vercel.app', 
+  'http://sordomundo.pro',
+  'https://localhost:3000',
+  'http://localhost:3000',
+  'https://ontario.com.pe',
+  'http://localhost:5173',
+  'https://localhost:5173'
+];
+
+// Middleware básico
+app.use(cors({
+  origin: function(origin, callback) {
+    if (!origin || whitelist.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('No permitido por CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+
 app.use(express.json());
 
-// Middleware para añadir headers CORS adicionales (opcional, ya está incluido en corsOptions)
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  next();
+// Ruta GET para la raíz del sitio
+app.get('/', (req, res) => {
+  res.send('Bienvenido al servidor de API. El servidor está funcionando correctamente.');
 });
-
-// Servir archivos estáticos desde la carpeta 'build' o 'dist' en producción
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'client/build')));
-}
 
 // Ruta para gestionar las solicitudes a la API externa
 app.post('/api/contact', async (req, res) => {
@@ -51,20 +64,15 @@ app.post('/api/contact', async (req, res) => {
     if (error.response) {
       console.error('Datos de error:', error.response.data);
       console.error('Estado de error:', error.response.status);
-      console.error('Headers de error:', error.response.headers);
-      
       res.status(error.response.status).json({
         error: 'Error en la respuesta de la API externa',
         details: error.response.data
       });
     } else if (error.request) {
-      console.error('No se recibió respuesta de la API externa');
       res.status(500).json({
-        error: 'No se recibió respuesta de la API externa',
-        details: error.request
+        error: 'No se recibió respuesta de la API externa'
       });
     } else {
-      console.error('Error al configurar la solicitud:', error.message);
       res.status(500).json({
         error: 'Error al configurar la solicitud',
         message: error.message
@@ -72,13 +80,6 @@ app.post('/api/contact', async (req, res) => {
     }
   }
 });
-
-// Manejar todas las demás solicitudes GET enviando React app (en producción)
-if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
-  });
-}
 
 // Iniciar el servidor
 app.listen(PORT, () => {
