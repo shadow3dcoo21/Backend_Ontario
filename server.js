@@ -6,13 +6,25 @@ const path = require('path');
 
 // Cargar variables de entorno
 dotenv.config();
+// Configuración de CORS
+const corsOptions = require('./config/cors/cors');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions)); // Habilitar CORS con opciones
+app.options('*', cors(corsOptions)); // Manejar preflight requests
 app.use(express.json());
+
+// Middleware para añadir headers CORS adicionales (opcional, ya está incluido en corsOptions)
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  next();
+});
 
 // Servir archivos estáticos desde la carpeta 'build' o 'dist' en producción
 if (process.env.NODE_ENV === 'production') {
